@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 
 export default function ChoreTracker() {
-  // Rotation order
   const roommates = ["Akshara", "Priyanka", "Divya"];
   const [today, setToday] = useState(new Date());
   const [history, setHistory] = useState(() => {
@@ -9,57 +8,48 @@ export default function ChoreTracker() {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Save history persistently
   useEffect(() => {
     localStorage.setItem("choreHistory", JSON.stringify(history));
   }, [history]);
 
-  // Helper to calculate whose turn it is
+  // helper
   const getPerson = (
     startDateStr,
     frequency = "daily",
     dayFilter = null,
     offset = 0,
-    shift = 0 // new: small rotation shift
+    shift = 0
   ) => {
     const startDate = new Date(startDateStr);
     const currentDate = new Date(today);
     currentDate.setDate(today.getDate() + offset);
-
-    const diffDays = Math.floor(
-      (currentDate - startDate) / (1000 * 60 * 60 * 24)
-    );
-
-    // pick correct index with shift adjustment
-    const pick = (num) => roommates[(num + shift + roommates.length) % roommates.length];
+    const diffDays = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
+    const pick = (n) => roommates[(n + shift + roommates.length) % roommates.length];
 
     if (frequency === "alternate") return pick(diffDays % roommates.length);
     if (frequency === "weekly" && currentDate.getDay() === dayFilter)
       return pick(Math.floor(diffDays / 7) % roommates.length);
     if (frequency === "daily") return pick(diffDays % roommates.length);
-
     return null;
   };
 
-  // base start date for consistent indexing
   const baseStart = "2025-10-01";
   const dayOfWeek = today.getDay();
 
-  // ---- Assign chores ----
-  const dusting = dayOfWeek !== 0 ? getPerson(baseStart, "alternate", null, 0, 0) : null; // skip Sunday
-  const mopping = dayOfWeek === 0 ? getPerson(baseStart, "weekly", 0, 0, -1) : null; // shift -1 so Akshara gets this week
-  const laundry = getPerson(baseStart, "daily", null, 0, 1); // shift +1 so Divya today, Akshara tomorrow
+  // FIX: adjust shifts so it aligns with your current reality
+  const dusting = dayOfWeek !== 0 ? getPerson(baseStart, "alternate", null, 0, -1) : null;
+  const mopping = dayOfWeek === 0 ? getPerson(baseStart, "weekly", 0, 0, 0) : null; // Akshara today
+  const laundry = getPerson(baseStart, "daily", null, 0, -2); // Divya today
 
-  // Tomorrow preview
+  // Tomorrow
   const dustingTomorrow =
-    dayOfWeek + 1 !== 0 ? getPerson(baseStart, "alternate", null, 1, 0) : null;
+    dayOfWeek + 1 !== 0 ? getPerson(baseStart, "alternate", null, 1, -1) : null;
   const moppingTomorrow =
     (dayOfWeek + 1) % 7 === 0
-      ? getPerson(baseStart, "weekly", 0, 1, -1)
+      ? getPerson(baseStart, "weekly", 0, 1, 0)
       : null;
-  const laundryTomorrow = getPerson(baseStart, "daily", null, 1, 1);
+  const laundryTomorrow = getPerson(baseStart, "daily", null, 1, -2);
 
-  // Mark done
   const handleDone = (task, person) => {
     const newEntry = {
       date: today.toDateString(),
@@ -82,7 +72,6 @@ export default function ChoreTracker() {
       <h1 className="text-3xl font-bold mb-4">🏡 Roommate Chore Tracker</h1>
       <h2 className="text-xl mb-6">Today: {today.toDateString()}</h2>
 
-      {/* Today’s chores */}
       <div className="grid gap-4 w-full max-w-md">
         {dusting && (
           <div className="bg-gray-700 rounded-2xl p-4 shadow-lg">
@@ -124,7 +113,6 @@ export default function ChoreTracker() {
         )}
       </div>
 
-      {/* Tomorrow’s preview */}
       <div className="mt-8 w-full max-w-md">
         <h2 className="text-xl font-semibold mb-2">🔮 Tomorrow's Preview</h2>
         <div className="bg-gray-700 rounded-2xl p-4 text-left shadow-lg">
@@ -134,7 +122,6 @@ export default function ChoreTracker() {
         </div>
       </div>
 
-      {/* History */}
       <div className="mt-8 w-full max-w-md">
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-xl font-semibold">📜 History Log</h2>
