@@ -49,20 +49,38 @@ export default function ChoreTracker() {
   // ---------- Styles ----------
   const calendarStyle = `
     .react-calendar {
-      background-color:#1f2937; color:#fff; border:none;
-      border-radius:1rem; padding:1rem;
+      background-color:#1f2937;
+      color:#fff;
+      border:none;
+      border-radius:1rem;
+      padding:1rem;
+      width: 100%;
+      max-width: 320px;
+      margin: 0 auto;
     }
     .react-calendar__tile {
-      background:none; color:#fff; border-radius:0.5rem;
+      background:none;
+      color:#fff;
+      border-radius:0.5rem;
+      text-align: center;
     }
     .react-calendar__tile--now {
-      background:#374151; color:#fff;
+      background:#374151;
+      color:#fff;
     }
     .react-calendar__tile--active {
-      background:#4f46e5!important; color:#fff!important;
+      background:#4f46e5!important;
+      color:#fff!important;
+    }
+    .react-calendar__navigation {
+      display:flex;
+      justify-content:center;
+      margin-bottom:0.5rem;
     }
     .react-calendar__navigation button {
-      color:#fff; background:none; font-weight:600;
+      color:#fff;
+      background:none;
+      font-weight:600;
     }
     .react-calendar__month-view__weekdays__weekday abbr {
       text-decoration:none;
@@ -71,40 +89,45 @@ export default function ChoreTracker() {
 
   // ---------- UI ----------
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start bg-gray-900 text-white p-6">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-6 text-center">
       <style>{calendarStyle}</style>
-      <h1 className="text-3xl font-bold mb-4">🏡 Roommate Chore Tracker</h1>
 
-      <div className="bg-gray-800 p-4 rounded-2xl shadow-lg mb-6">
+      <h1 className="text-4xl font-bold mb-6">🏡 Roommate Chore Tracker</h1>
+
+      {/* Calendar */}
+      <div className="bg-gray-800 p-5 rounded-2xl shadow-lg mb-6 flex flex-col items-center justify-center">
         <Calendar onChange={setSelectedDate} value={selectedDate} className="rounded-lg" />
       </div>
 
-      <h2 className="text-xl mb-6">Selected Day: {selectedDate.toDateString()}</h2>
+      <h2 className="text-2xl font-semibold mb-6">
+        Selected Day: {selectedDate.toDateString()}
+      </h2>
 
-      <div className="grid gap-4 w-full max-w-md">
+      {/* Chore cards */}
+      <div className="flex flex-col gap-4 items-center justify-center w-full max-w-md">
         {mopping && (
-          <div className="bg-gray-700 rounded-2xl p-4 shadow-lg">
-            <h3 className="text-lg font-semibold">🧽 Mopping</h3>
+          <div className="bg-gray-700 rounded-2xl p-5 shadow-lg w-72 text-center">
+            <h3 className="text-lg font-semibold mb-1">🧽 Mopping</h3>
             <p>{mopping}</p>
           </div>
         )}
 
         {dusting && (
-          <div className="bg-gray-700 rounded-2xl p-4 shadow-lg">
-            <h3 className="text-lg font-semibold">🧹 Dusting & Brushing</h3>
+          <div className="bg-gray-700 rounded-2xl p-5 shadow-lg w-72 text-center">
+            <h3 className="text-lg font-semibold mb-1">🧹 Dusting & Brushing</h3>
             <p>{dusting}</p>
           </div>
         )}
 
         {laundry && (
-          <div className="bg-gray-700 rounded-2xl p-4 shadow-lg">
-            <h3 className="text-lg font-semibold">👕 Laundry</h3>
+          <div className="bg-gray-700 rounded-2xl p-5 shadow-lg w-72 text-center">
+            <h3 className="text-lg font-semibold mb-1">👕 Laundry</h3>
             <p>{laundry}</p>
           </div>
         )}
       </div>
 
-      <footer className="mt-8 text-gray-400 text-sm">
+      <footer className="mt-10 text-gray-400 text-sm text-center">
         Made with ❤️ for Akshara, Priyanka & Divya
       </footer>
     </div>
