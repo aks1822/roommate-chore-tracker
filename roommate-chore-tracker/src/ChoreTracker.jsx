@@ -14,19 +14,29 @@ export default function ChoreTracker() {
     localStorage.setItem("choreHistory", JSON.stringify(history));
   }, [history]);
 
+  // Helper: rotate through roommates
   const getPerson = (indexOffset = 0) =>
     roommates[(indexOffset % roommates.length + roommates.length) % roommates.length];
 
-  const baseDate = new Date("2025-10-19"); // today = Akshara mops, Divya laundry, tomorrow Priyanka dusts
-  const diffDays = Math.floor((selectedDate - baseDate) / (1000 * 60 * 60 * 24));
+  // Base date: today = day 0 (Sun, Oct 19 2025)
+  const baseDate = new Date("2025-10-19");
+  const diffDays = Math.floor(
+    (selectedDate - baseDate) / (1000 * 60 * 60 * 24)
+  );
   const dayOfWeek = selectedDate.getDay();
 
   // --- Chore Logic ---
-  const mopping = dayOfWeek === 0 ? getPerson(Math.floor(diffDays / 7)) : null; // every Sunday
-  const laundry = getPerson(diffDays - 1); // daily
-  const dusting =
-    dayOfWeek !== 0 && diffDays % 2 === 1 ? getPerson(diffDays) : null; // alternate days, skip Sunday
+  // 🧽 Mopping (every Sunday, starts Akshara)
+  const mopping = dayOfWeek === 0 ? getPerson(Math.floor(diffDays / 7)) : null;
 
+  // 👕 Laundry (daily, starts Divya)
+  const laundry = getPerson(diffDays - 1);
+
+  // 🧹 Dusting (every alternate day starting tomorrow, Priyanka)
+  const dusting =
+    dayOfWeek !== 0 && diffDays % 2 === 1 ? getPerson(diffDays) : null;
+
+  // --- History Handling ---
   const handleDone = (task, person) => {
     const newEntry = {
       date: selectedDate.toDateString(),
@@ -44,8 +54,39 @@ export default function ChoreTracker() {
     }
   };
 
+  // --- Dark theme calendar style fix ---
+  const calendarStyle = `
+    .react-calendar {
+      background-color: #1f2937;
+      color: white;
+      border: none;
+      border-radius: 1rem;
+      padding: 1rem;
+    }
+    .react-calendar__tile {
+      background: none;
+      color: white;
+      border-radius: 0.5rem;
+    }
+    .react-calendar__tile--now {
+      background: #374151;
+      color: #fff;
+    }
+    .react-calendar__tile--active {
+      background: #4f46e5 !important;
+      color: #fff !important;
+    }
+    .react-calendar__navigation button {
+      color: white;
+      background: none;
+      font-weight: bold;
+    }
+  `;
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-start bg-gradient-to-br from-gray-900 to-gray-800 text-white p-6 text-center">
+      <style>{calendarStyle}</style>
+
       <h1 className="text-3xl font-bold mb-4">🏡 Roommate Chore Tracker</h1>
 
       {/* Calendar */}
@@ -53,7 +94,7 @@ export default function ChoreTracker() {
         <Calendar
           onChange={setSelectedDate}
           value={selectedDate}
-          className="rounded-lg p-2 text-black"
+          className="rounded-lg text-black"
         />
       </div>
 
