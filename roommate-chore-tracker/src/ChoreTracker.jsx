@@ -12,33 +12,45 @@ export default function ChoreTracker() {
     localStorage.setItem("choreHistory", JSON.stringify(history));
   }, [history]);
 
-  const getPerson = (startDateStr, frequency = "daily", dayFilter = null, offset = 0, shift = 0) => {
-    const startDate = new Date(startDateStr);
-    const currentDate = new Date(today);
-    currentDate.setDate(today.getDate() + offset);
-    const diffDays = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
-    const pick = (n) => roommates[(n + shift + roommates.length) % roommates.length];
+  // Helper: choose person in rotation
+  const getPerson = (indexOffset = 0) =>
+    roommates[(indexOffset % roommates.length + roommates.length) % roommates.length];
 
-    if (frequency === "alternate") return pick(diffDays % roommates.length);
-    if (frequency === "weekly" && currentDate.getDay() === dayFilter)
-      return pick(Math.floor(diffDays / 7) % roommates.length);
-    if (frequency === "daily") return pick(diffDays % roommates.length);
-    return null;
+  // Compute relative day number since "today = day 0"
+  const getDayOffset = (offset = 0) => {
+    const current = new Date(today);
+    const base = new Date(today);
+    base.setHours(0, 0, 0, 0);
+    current.setDate(today.getDate() + offset);
+    return Math.floor((current - base) / (1000 * 60 * 60 * 24)) + offset;
   };
 
-  const baseStart = "2025-10-01";
-  const dayOfWeek = today.getDay();
+  // --- TODAY’s Chores ---
+  const dayOfWeek = today.getDay(); // Sunday = 0
+  const diff = 0; // today offset = 0
 
-  // --- FIXED rotation ---
-  const dusting = dayOfWeek !== 0 ? getPerson(baseStart, "alternate", null, 0, 1) : null; // skip Sunday
-  const mopping = dayOfWeek === 0 ? getPerson(baseStart, "weekly", 0, 0, -1) : null; // Akshara today
-  const laundry = getPerson(baseStart, "daily", null, 0, -1); // Divya today
+  // Mopping: Sunday only, starts with Akshara
+  const mopping =
+    dayOfWeek === 0 ? getPerson(Math.floor(diff / 7)) : null;
 
-  // Tomorrow
-  const dustingTomorrow = dayOfWeek + 1 !== 0 ? getPerson(baseStart, "alternate", null, 1, 1) : null;
-  const moppingTomorrow = (dayOfWeek + 1) % 7 === 0 ? getPerson(baseStart, "weekly", 0, 1, -1) : null;
-  const laundryTomorrow = getPerson(baseStart, "daily", null, 1, -1); // Akshara tomorrow
+  // Laundry: daily, starts today with Divya
+  const laundry = getPerson(diff - 1); // so day0=Divya, day1=Akshara, etc.
 
+  // Dusting: every alternate day starting tomorrow (Priyanka)
+  const dusting =
+    dayOfWeek !== 0 && diff % 2 === 1 ? getPerson(diff) : null;
+
+  // --- TOMORROW’s Chores ---
+  const tomorrowDay = (dayOfWeek + 1) % 7;
+  const tDiff = diff + 1;
+
+  const moppingTomorrow =
+    tomorrowDay === 0 ? getPerson(Math.floor(tDiff / 7)) : null;
+  const laundryTomorrow = getPerson(tDiff - 1);
+  const dustingTomorrow =
+    tomorrowDay !== 0 && tDiff % 2 === 1 ? getPerson(tDiff) : null;
+
+  // --- Mark Done & History ---
   const handleDone = (task, person) => {
     const newEntry = {
       date: today.toDateString(),
@@ -61,13 +73,14 @@ export default function ChoreTracker() {
       <h1 className="text-3xl font-bold mb-4">🏡 Roommate Chore Tracker</h1>
       <h2 className="text-xl mb-6">Today: {today.toDateString()}</h2>
 
+      {/* TODAY */}
       <div className="grid gap-4 w-full max-w-md">
-        {dusting && (
+        {mopping && (
           <div className="bg-gray-700 rounded-2xl p-4 shadow-lg">
-            <h3 className="text-lg font-semibold">🧹 Dusting & Brushing</h3>
-            <p>{dusting}</p>
+            <h3 className="text-lg font-semibold">🧽 Mopping</h3>
+            <p>{mopping}</p>
             <button
-              onClick={() => handleDone("Dusting & Brushing", dusting)}
+              onClick={() => handleDone("Mopping", mopping)}
               className="mt-2 px-4 py-1 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600"
             >
               Mark as Done
@@ -75,12 +88,12 @@ export default function ChoreTracker() {
           </div>
         )}
 
-        {mopping && (
+        {dusting && (
           <div className="bg-gray-700 rounded-2xl p-4 shadow-lg">
-            <h3 className="text-lg font-semibold">🧽 Mopping</h3>
-            <p>{mopping}</p>
+            <h3 className="text-lg font-semibold">🧹 Dusting & Brushing</h3>
+            <p>{dusting}</p>
             <button
-              onClick={() => handleDone("Mopping", mopping)}
+              onClick={() => handleDone("Dusting & Brushing", dusting)}
               className="mt-2 px-4 py-1 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600"
             >
               Mark as Done
@@ -102,15 +115,17 @@ export default function ChoreTracker() {
         )}
       </div>
 
+      {/* TOMORROW */}
       <div className="mt-8 w-full max-w-md">
         <h2 className="text-xl font-semibold mb-2">🔮 Tomorrow's Preview</h2>
         <div className="bg-gray-700 rounded-2xl p-4 text-left shadow-lg">
-          {dustingTomorrow && <p>🧹 Dusting & Brushing: {dustingTomorrow}</p>}
           {moppingTomorrow && <p>🧽 Mopping: {moppingTomorrow}</p>}
+          {dustingTomorrow && <p>🧹 Dusting & Brushing: {dustingTomorrow}</p>}
           {laundryTomorrow && <p>👕 Laundry: {laundryTomorrow}</p>}
         </div>
       </div>
 
+      {/* HISTORY */}
       <div className="mt-8 w-full max-w-md">
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-xl font-semibold">📜 History Log</h2>
