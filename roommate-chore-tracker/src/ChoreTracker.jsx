@@ -3,48 +3,80 @@ import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 
 export default function ChoreTracker() {
+  // Rotation order (fixed)
   const roommates = ["Akshara", "Priyanka", "Divya"];
+
+  // Calendar-selected day (defaults to today)
   const [selectedDate, setSelectedDate] = useState(new Date());
+
+  // Simple local history log
   const [history, setHistory] = useState(() => {
     const saved = localStorage.getItem("choreHistory");
     return saved ? JSON.parse(saved) : [];
   });
-
   useEffect(() => {
     localStorage.setItem("choreHistory", JSON.stringify(history));
   }, [history]);
 
-  // Helper: rotate through roommates
-  const getPerson = (indexOffset = 0) =>
-    roommates[(indexOffset % roommates.length + roommates.length) % roommates.length];
+  // ---------- Helpers ----------
+  const mod = (n, m) => ((n % m) + m) % m;
+  const getPerson = (idx) => roommates[mod(idx, roommates.length)];
 
-  // Base date: today = day 0 (Sun, Oct 19 2025)
-  const baseDate = new Date("2025-10-19");
-  const diffDays = Math.floor(
-    (selectedDate - baseDate) / (1000 * 60 * 60 * 24)
-  );
-  const dayOfWeek = selectedDate.getDay();
+  // We lock-in "today" = Day 0 => Sunday 2025-10-19
+  // (Mopping: Akshara today; Laundry: Divya today; Dusting starts tomorrow with Priyanka)
+  const BASE = new Date("2025-10-19T00:00:00"); // local midnight
+  const dayDiff = Math.floor((stripTime(selectedDate) - stripTime(BASE)) / 86400000);
+  const dow = selectedDate.getDay(); // 0=Sun..6=Sat
 
-  // --- Chore Logic ---
-  // 🧽 Mopping (every Sunday, starts Akshara)
-  const mopping = dayOfWeek === 0 ? getPerson(Math.floor(diffDays / 7)) : null;
+  // Remove time-of-day
+  function stripTime(d) {
+    const x = new Date(d);
+    x.setHours(0, 0, 0, 0);
+    return x;
+  }
 
-  // 👕 Laundry (daily, starts Divya)
-  const laundry = getPerson(diffDays - 1);
+  // ---------- Chore logic ----------
+  // 🧽 Mopping — Sundays only. Week index = floor(dayDiff/7); start at Akshara
+  const mopping =
+    dow === 0 ? getPerson(Math.floor(dayDiff / 7) /* 0->A, 1->P, 2->D... */) : null;
 
-  // 🧹 Dusting (every alternate day starting tomorrow, Priyanka)
-  const dusting =
-    dayOfWeek !== 0 && diffDays % 2 === 1 ? getPerson(diffDays) : null;
+  // 👕 Laundry — Daily. Start today with Divya (index 2), then A (0), P (1)...
+  const startLaundryIdx = 2; // Divya
+  const laundry = getPerson(startLaundryIdx + dayDiff);
 
-  // --- History Handling ---
+  // 🧹 Dusting — Every other day starting tomorrow (dayDiff = 1), skip Sundays.
+  // We count ONLY actual dusting days (odd offsets that are NOT Sundays), so Sundays don’t advance the rotation.
+  const dusting = getDustingAssignee(dayDiff, dow);
+
+  function getDustingAssignee(d, dayOfWeek) {
+    // No dusting before tomorrow; none on Sundays
+    if (d < 1 || dayOfWeek === 0) return null;
+    // Dusting happens on odd offsets only (1,3,5,...) relative to base
+    if (d % 2 === 0) return null;
+
+    // Count how many dusting days have occurred from day 1 up to day d (inclusive),
+    // but skip any that land on Sundays (offsets 7, 21, 35, ...).
+    // We’ll just iterate in steps of 2 (cheap, at most ~15 loops per month).
+    let count = 0;
+    for (let k = 1; k <= d; k += 2) {
+      const kDow = (0 + k) % 7; // base was Sunday (0), so offset k has weekday k % 7
+      if (kDow !== 0) count++; // count only non-Sunday dusting occurrences
+    }
+    // The assignee for day d is the (count-1)-th dusting occurrence.
+    // Dusting starts with Priyanka on day 1, then Divya, then Akshara, repeating.
+    const startDustIdx = 1; // Priyanka
+    return getPerson(startDustIdx + (count - 1));
+  }
+
+  // ---------- UI helpers ----------
   const handleDone = (task, person) => {
-    const newEntry = {
+    const entry = {
       date: selectedDate.toDateString(),
       task,
       person,
       time: new Date().toLocaleTimeString(),
     };
-    setHistory((prev) => [...prev, newEntry]);
+    setHistory((prev) => [entry, ...prev]);
   };
 
   const clearHistory = () => {
@@ -54,39 +86,19 @@ export default function ChoreTracker() {
     }
   };
 
-  // --- Dark theme calendar style fix ---
+  // Dark theme styles for react-calendar
   const calendarStyle = `
-    .react-calendar {
-      background-color: #1f2937;
-      color: white;
-      border: none;
-      border-radius: 1rem;
-      padding: 1rem;
-    }
-    .react-calendar__tile {
-      background: none;
-      color: white;
-      border-radius: 0.5rem;
-    }
-    .react-calendar__tile--now {
-      background: #374151;
-      color: #fff;
-    }
-    .react-calendar__tile--active {
-      background: #4f46e5 !important;
-      color: #fff !important;
-    }
-    .react-calendar__navigation button {
-      color: white;
-      background: none;
-      font-weight: bold;
-    }
+    .react-calendar { background-color:#1f2937; color:#fff; border:none; border-radius:1rem; padding:1rem; }
+    .react-calendar__tile { background:none; color:#fff; border-radius:0.5rem; }
+    .react-calendar__tile--now { background:#374151; color:#fff; }
+    .react-calendar__tile--active { background:#4f46e5 !important; color:#fff !important; }
+    .react-calendar__navigation button { color:#fff; background:none; font-weight:600; }
+    .react-calendar__month-view__weekdays__weekday abbr { text-decoration:none; }
   `;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start bg-gradient-to-br from-gray-900 to-gray-800 text-white p-6 text-center">
+    <div className="min-h-screen flex flex-col items-center justify-start bg-gray-900 text-white p-6">
       <style>{calendarStyle}</style>
-
       <h1 className="text-3xl font-bold mb-4">🏡 Roommate Chore Tracker</h1>
 
       {/* Calendar */}
@@ -94,15 +106,13 @@ export default function ChoreTracker() {
         <Calendar
           onChange={setSelectedDate}
           value={selectedDate}
-          className="rounded-lg text-black"
+          className="rounded-lg"
         />
       </div>
 
-      <h2 className="text-xl mb-6">
-        Selected Day: {selectedDate.toDateString()}
-      </h2>
+      <h2 className="text-xl mb-6">Selected Day: {selectedDate.toDateString()}</h2>
 
-      {/* Chore Cards */}
+      {/* Chore cards for the selected day */}
       <div className="grid gap-4 w-full max-w-md">
         {mopping && (
           <div className="bg-gray-700 rounded-2xl p-4 shadow-lg">
@@ -155,12 +165,12 @@ export default function ChoreTracker() {
             Clear
           </button>
         </div>
-        <div className="bg-gray-700 rounded-2xl p-4 text-left h-48 overflow-y-auto">
+        <div className="bg-gray-800 rounded-2xl p-4 text-left h-48 overflow-y-auto">
           {history.length === 0 ? (
             <p className="text-gray-400">No tasks completed yet.</p>
           ) : (
             history.map((item, idx) => (
-              <div key={idx} className="border-b border-gray-600 py-1">
+              <div key={idx} className="border-b border-gray-700 py-1">
                 <p>
                   <strong>{item.task}</strong> by {item.person}
                 </p>
