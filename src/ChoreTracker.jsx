@@ -9,15 +9,6 @@ export default function ChoreTracker() {
   // Calendar-selected day (defaults to today)
   const [selectedDate, setSelectedDate] = useState(new Date());
 
-  // Simple local history log
-  const [history, setHistory] = useState(() => {
-    const saved = localStorage.getItem("choreHistory");
-    return saved ? JSON.parse(saved) : [];
-  });
-  useEffect(() => {
-    localStorage.setItem("choreHistory", JSON.stringify(history));
-  }, [history]);
-
   // ---------- Helpers ----------
   const mod = (n, m) => ((n % m) + m) % m;
   const getPerson = (idx) => roommates[mod(idx, roommates.length)];
@@ -152,35 +143,6 @@ export default function ChoreTracker() {
             </button>
           </div>
         )}
-      </div>
-
-      {/* History */}
-      <div className="mt-8 w-full max-w-md">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-xl font-semibold">📜 History Log</h2>
-          <button
-            onClick={clearHistory}
-            className="px-3 py-1 text-sm bg-red-500 rounded-lg hover:bg-red-600"
-          >
-            Clear
-          </button>
-        </div>
-        <div className="bg-gray-800 rounded-2xl p-4 text-left h-48 overflow-y-auto">
-          {history.length === 0 ? (
-            <p className="text-gray-400">No tasks completed yet.</p>
-          ) : (
-            history.map((item, idx) => (
-              <div key={idx} className="border-b border-gray-700 py-1">
-                <p>
-                  <strong>{item.task}</strong> by {item.person}
-                </p>
-                <span className="text-xs text-gray-400">
-                  {item.date} at {item.time}
-                </span>
-              </div>
-            ))
-          )}
-        </div>
       </div>
 
       <footer className="mt-8 text-gray-400 text-sm">
