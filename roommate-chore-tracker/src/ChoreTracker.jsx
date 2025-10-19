@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 
 export default function ChoreTracker() {
-  const roommates = ["Akshara", "Roommate 2", "Roommate 3"];
+  // Rotation order
+  const roommates = ["Akshara", "Priyanka", "Divya"];
   const [today, setToday] = useState(new Date());
   const [history, setHistory] = useState(() => {
     const saved = localStorage.getItem("choreHistory");
@@ -18,7 +19,6 @@ export default function ChoreTracker() {
     const startDate = new Date(startDateStr);
     const currentDate = new Date(today);
     currentDate.setDate(today.getDate() + offset);
-
     const diffDays = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
 
     if (frequency === "alternate") {
@@ -40,17 +40,20 @@ export default function ChoreTracker() {
     return null;
   };
 
-  // Base start date (first day of chores)
+  // Base date for chore rotation start (you can adjust to align schedule)
   const baseStart = "2025-10-01";
 
-  // Today’s tasks
-  const dustBrush = getPerson(baseStart, "alternate");
-  const brushMop = getPerson(baseStart, "weekly", 0); // Sunday
+  // Today’s weekday (0 = Sunday, 6 = Saturday)
+  const dayOfWeek = today.getDay();
+
+  // Tasks assignment
+  const dusting = getPerson(baseStart, "alternate");
+  const mopping = getPerson(baseStart, "weekly", 0); // Sundays only
   const laundry = getPerson(baseStart, "daily");
 
   // Tomorrow’s preview
-  const dustBrushTomorrow = getPerson(baseStart, "alternate", null, 1);
-  const brushMopTomorrow = getPerson(baseStart, "weekly", 0, 1);
+  const dustingTomorrow = getPerson(baseStart, "alternate", null, 1);
+  const moppingTomorrow = getPerson(baseStart, "weekly", 0, 1);
   const laundryTomorrow = getPerson(baseStart, "daily", null, 1);
 
   // Mark task done
@@ -79,23 +82,14 @@ export default function ChoreTracker() {
 
       {/* Today’s chores */}
       <div className="grid gap-4 w-full max-w-md">
-        <div className="bg-white shadow-lg rounded-2xl p-4">
-          <h3 className="text-lg font-semibold">🧹 Dusting & Brushing</h3>
-          <p>{dustBrush}</p>
-          <button
-            onClick={() => handleDone("Dusting & Brushing", dustBrush)}
-            className="mt-2 px-4 py-1 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600"
-          >
-            Mark as Done
-          </button>
-        </div>
 
-        {today.getDay() === 0 && (
+        {/* Dusting (every alternate day, skip if Sunday) */}
+        {dayOfWeek !== 0 && (
           <div className="bg-white shadow-lg rounded-2xl p-4">
-            <h3 className="text-lg font-semibold">🧽 Brushing & Mopping (Sunday)</h3>
-            <p>{brushMop}</p>
+            <h3 className="text-lg font-semibold">🧹 Dusting & Brushing</h3>
+            <p>{dusting}</p>
             <button
-              onClick={() => handleDone("Brushing & Mopping", brushMop)}
+              onClick={() => handleDone("Dusting & Brushing", dusting)}
               className="mt-2 px-4 py-1 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600"
             >
               Mark as Done
@@ -103,6 +97,21 @@ export default function ChoreTracker() {
           </div>
         )}
 
+        {/* Mopping only on Sunday */}
+        {dayOfWeek === 0 && (
+          <div className="bg-white shadow-lg rounded-2xl p-4">
+            <h3 className="text-lg font-semibold">🧽 Mopping</h3>
+            <p>{mopping}</p>
+            <button
+              onClick={() => handleDone("Mopping", mopping)}
+              className="mt-2 px-4 py-1 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600"
+            >
+              Mark as Done
+            </button>
+          </div>
+        )}
+
+        {/* Laundry daily */}
         <div className="bg-white shadow-lg rounded-2xl p-4">
           <h3 className="text-lg font-semibold">👕 Laundry</h3>
           <p>{laundry}</p>
@@ -119,8 +128,8 @@ export default function ChoreTracker() {
       <div className="mt-8 w-full max-w-md">
         <h2 className="text-xl font-semibold mb-2">🔮 Tomorrow's Preview</h2>
         <div className="bg-white shadow rounded-2xl p-4 text-left">
-          <p>🧹 Dusting & Brushing: {dustBrushTomorrow}</p>
-          {brushMopTomorrow && <p>🧽 Brushing & Mopping: {brushMopTomorrow}</p>}
+          {dayOfWeek !== 6 && <p>🧹 Dusting & Brushing: {dustingTomorrow}</p>}
+          {moppingTomorrow && <p>🧽 Mopping (Sunday): {moppingTomorrow}</p>}
           <p>👕 Laundry: {laundryTomorrow}</p>
         </div>
       </div>
@@ -155,7 +164,7 @@ export default function ChoreTracker() {
       </div>
 
       <footer className="mt-8 text-gray-500 text-sm">
-        Made with ❤️ for roommates
+        Made with ❤️ for Akshara, Priyanka & Divya
       </footer>
     </div>
   );
