@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
+import Calendar from "react-calendar";
+import "react-calendar/dist/Calendar.css";
 
 export default function ChoreTracker() {
   const roommates = ["Akshara", "Priyanka", "Divya"];
-  const [today, setToday] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [history, setHistory] = useState(() => {
     const saved = localStorage.getItem("choreHistory");
     return saved ? JSON.parse(saved) : [];
@@ -12,48 +14,22 @@ export default function ChoreTracker() {
     localStorage.setItem("choreHistory", JSON.stringify(history));
   }, [history]);
 
-  // Helper: choose person in rotation
   const getPerson = (indexOffset = 0) =>
     roommates[(indexOffset % roommates.length + roommates.length) % roommates.length];
 
-  // Compute relative day number since "today = day 0"
-  const getDayOffset = (offset = 0) => {
-    const current = new Date(today);
-    const base = new Date(today);
-    base.setHours(0, 0, 0, 0);
-    current.setDate(today.getDate() + offset);
-    return Math.floor((current - base) / (1000 * 60 * 60 * 24)) + offset;
-  };
+  const baseDate = new Date("2025-10-19"); // today = Akshara mops, Divya laundry, tomorrow Priyanka dusts
+  const diffDays = Math.floor((selectedDate - baseDate) / (1000 * 60 * 60 * 24));
+  const dayOfWeek = selectedDate.getDay();
 
-  // --- TODAY’s Chores ---
-  const dayOfWeek = today.getDay(); // Sunday = 0
-  const diff = 0; // today offset = 0
-
-  // Mopping: Sunday only, starts with Akshara
-  const mopping =
-    dayOfWeek === 0 ? getPerson(Math.floor(diff / 7)) : null;
-
-  // Laundry: daily, starts today with Divya
-  const laundry = getPerson(diff - 1); // so day0=Divya, day1=Akshara, etc.
-
-  // Dusting: every alternate day starting tomorrow (Priyanka)
+  // --- Chore Logic ---
+  const mopping = dayOfWeek === 0 ? getPerson(Math.floor(diffDays / 7)) : null; // every Sunday
+  const laundry = getPerson(diffDays - 1); // daily
   const dusting =
-    dayOfWeek !== 0 && diff % 2 === 1 ? getPerson(diff) : null;
+    dayOfWeek !== 0 && diffDays % 2 === 1 ? getPerson(diffDays) : null; // alternate days, skip Sunday
 
-  // --- TOMORROW’s Chores ---
-  const tomorrowDay = (dayOfWeek + 1) % 7;
-  const tDiff = diff + 1;
-
-  const moppingTomorrow =
-    tomorrowDay === 0 ? getPerson(Math.floor(tDiff / 7)) : null;
-  const laundryTomorrow = getPerson(tDiff - 1);
-  const dustingTomorrow =
-    tomorrowDay !== 0 && tDiff % 2 === 1 ? getPerson(tDiff) : null;
-
-  // --- Mark Done & History ---
   const handleDone = (task, person) => {
     const newEntry = {
-      date: today.toDateString(),
+      date: selectedDate.toDateString(),
       task,
       person,
       time: new Date().toLocaleTimeString(),
@@ -69,11 +45,23 @@ export default function ChoreTracker() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800 text-white p-6 text-center">
+    <div className="min-h-screen flex flex-col items-center justify-start bg-gradient-to-br from-gray-900 to-gray-800 text-white p-6 text-center">
       <h1 className="text-3xl font-bold mb-4">🏡 Roommate Chore Tracker</h1>
-      <h2 className="text-xl mb-6">Today: {today.toDateString()}</h2>
 
-      {/* TODAY */}
+      {/* Calendar */}
+      <div className="bg-gray-800 p-4 rounded-2xl shadow-lg mb-6">
+        <Calendar
+          onChange={setSelectedDate}
+          value={selectedDate}
+          className="rounded-lg p-2 text-black"
+        />
+      </div>
+
+      <h2 className="text-xl mb-6">
+        Selected Day: {selectedDate.toDateString()}
+      </h2>
+
+      {/* Chore Cards */}
       <div className="grid gap-4 w-full max-w-md">
         {mopping && (
           <div className="bg-gray-700 rounded-2xl p-4 shadow-lg">
@@ -115,17 +103,7 @@ export default function ChoreTracker() {
         )}
       </div>
 
-      {/* TOMORROW */}
-      <div className="mt-8 w-full max-w-md">
-        <h2 className="text-xl font-semibold mb-2">🔮 Tomorrow's Preview</h2>
-        <div className="bg-gray-700 rounded-2xl p-4 text-left shadow-lg">
-          {moppingTomorrow && <p>🧽 Mopping: {moppingTomorrow}</p>}
-          {dustingTomorrow && <p>🧹 Dusting & Brushing: {dustingTomorrow}</p>}
-          {laundryTomorrow && <p>👕 Laundry: {laundryTomorrow}</p>}
-        </div>
-      </div>
-
-      {/* HISTORY */}
+      {/* History */}
       <div className="mt-8 w-full max-w-md">
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-xl font-semibold">📜 History Log</h2>
