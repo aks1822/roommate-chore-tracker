@@ -12,14 +12,7 @@ export default function ChoreTracker() {
     localStorage.setItem("choreHistory", JSON.stringify(history));
   }, [history]);
 
-  // helper
-  const getPerson = (
-    startDateStr,
-    frequency = "daily",
-    dayFilter = null,
-    offset = 0,
-    shift = 0
-  ) => {
+  const getPerson = (startDateStr, frequency = "daily", dayFilter = null, offset = 0, shift = 0) => {
     const startDate = new Date(startDateStr);
     const currentDate = new Date(today);
     currentDate.setDate(today.getDate() + offset);
@@ -36,19 +29,15 @@ export default function ChoreTracker() {
   const baseStart = "2025-10-01";
   const dayOfWeek = today.getDay();
 
-  // FIX: adjust shifts so it aligns with your current reality
-  const dusting = dayOfWeek !== 0 ? getPerson(baseStart, "alternate", null, 0, -1) : null;
-  const mopping = dayOfWeek === 0 ? getPerson(baseStart, "weekly", 0, 0, 0) : null; // Akshara today
-  const laundry = getPerson(baseStart, "daily", null, 0, -2); // Divya today
+  // --- FIXED rotation ---
+  const dusting = dayOfWeek !== 0 ? getPerson(baseStart, "alternate", null, 0, 1) : null; // skip Sunday
+  const mopping = dayOfWeek === 0 ? getPerson(baseStart, "weekly", 0, 0, -1) : null; // Akshara today
+  const laundry = getPerson(baseStart, "daily", null, 0, -1); // Divya today
 
   // Tomorrow
-  const dustingTomorrow =
-    dayOfWeek + 1 !== 0 ? getPerson(baseStart, "alternate", null, 1, -1) : null;
-  const moppingTomorrow =
-    (dayOfWeek + 1) % 7 === 0
-      ? getPerson(baseStart, "weekly", 0, 1, 0)
-      : null;
-  const laundryTomorrow = getPerson(baseStart, "daily", null, 1, -2);
+  const dustingTomorrow = dayOfWeek + 1 !== 0 ? getPerson(baseStart, "alternate", null, 1, 1) : null;
+  const moppingTomorrow = (dayOfWeek + 1) % 7 === 0 ? getPerson(baseStart, "weekly", 0, 1, -1) : null;
+  const laundryTomorrow = getPerson(baseStart, "daily", null, 1, -1); // Akshara tomorrow
 
   const handleDone = (task, person) => {
     const newEntry = {
